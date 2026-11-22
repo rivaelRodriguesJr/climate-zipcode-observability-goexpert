@@ -1,0 +1,45 @@
+version: '3'
+services:
+ 
+  zipkin-all-in-one:
+    image: openzipkin/zipkin:latest
+    restart: always
+    ports:
+      - "9411:9411"
+
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.103.0
+    restart: always
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./config/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "1888:1888"   # pprof extension
+      - "13133:13133" # health_check extension
+      - "4317:4317"   # OTLP gRPC receiver
+      - "55679:55679" # zpages extension
+
+  service-a:
+    container_name: service-a
+    build:
+      context: ./service-a
+    ports:
+      - "8080:8080"
+    depends_on:
+      - zipkin-all-in-one
+      - otel-collector
+      - service-b
+
+  service-b:
+    container_name: service-b
+    build:
+      context: ./service-b
+    environment:
+      - WEATHER_API_KEY=${WEATHER_API_KEY}
+      - PORT=8081
+    ports:
+      - "8081:8081"
+    depends_on:
+      - zipkin-all-in-one
+      - otel-collector

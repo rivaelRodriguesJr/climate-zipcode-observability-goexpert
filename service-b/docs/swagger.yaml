@@ -1,0 +1,60 @@
+basePath: /
+definitions:
+  handler.Response:
+    properties:
+      city:
+        example: São Paulo
+        type: string
+      temp_C:
+        example: 28.5
+        type: number
+      temp_F:
+        example: 83.3
+        type: number
+      temp_K:
+        example: 301.5
+        type: number
+    type: object
+info:
+  contact: {}
+  description: |-
+    Serviço HTTP que recebe um CEP, identifica a cidade através do ViaCEP e retorna a temperatura atual utilizando a WeatherAPI.
+    As temperaturas são retornadas em Celsius, Fahrenheit e Kelvin.
+  title: Clima por CEP API
+  version: "1.0"
+paths:
+  /weather/{zipcode}:
+    get:
+      description: |-
+        Receives a Brazilian ZIP code (CEP), identifies the corresponding city using ViaCEP and retrieves its current temperature using WeatherAPI.
+        Temperatures are returned in Celsius, Fahrenheit and Kelvin.
+      parameters:
+      - description: Brazilian ZIP code (8 digits)
+        example: "01001000"
+        in: path
+        name: zipcode
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Current temperature
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "404":
+          description: can not find zipcode
+          schema:
+            type: string
+        "422":
+          description: invalid zipcode
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Get current weather by ZIP code
+      tags:
+      - Weather
+swagger: "2.0"

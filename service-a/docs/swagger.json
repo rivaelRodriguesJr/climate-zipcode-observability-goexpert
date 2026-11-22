@@ -1,0 +1,102 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Serviço HTTP que recebe um CEP, identifica a cidade através do ViaCEP e retorna a temperatura atual utilizando a WeatherAPI.\nAs temperaturas são retornadas em Celsius, Fahrenheit e Kelvin.",
+        "title": "Clima por CEP API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "basePath": "/",
+    "paths": {
+        "/weather": {
+            "post": {
+                "description": "Receives a Brazilian ZIP code (CEP) as a JSON body, resolves the\ncorresponding city via ViaCEP and retrieves its current temperature\nvia WeatherAPI. Temperatures are returned in Celsius, Fahrenheit and Kelvin.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Weather"
+                ],
+                "summary": "Get current weather by ZIP code",
+                "parameters": [
+                    {
+                        "description": "Brazilian ZIP code (8 digits)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.WeatherRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Current temperature",
+                        "schema": {
+                            "$ref": "#/definitions/handler.WeatherResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "can not find zipcode",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "422": {
+                        "description": "invalid zipcode",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "handler.WeatherRequest": {
+            "type": "object",
+            "properties": {
+                "cep": {
+                    "type": "string",
+                    "example": "01001001"
+                }
+            }
+        },
+        "handler.WeatherResponse": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string",
+                    "example": "São Paulo"
+                },
+                "temp_C": {
+                    "type": "number",
+                    "example": 28.5
+                },
+                "temp_F": {
+                    "type": "number",
+                    "example": 83.3
+                },
+                "temp_K": {
+                    "type": "number",
+                    "example": 301.5
+                }
+            }
+        }
+    }
+}

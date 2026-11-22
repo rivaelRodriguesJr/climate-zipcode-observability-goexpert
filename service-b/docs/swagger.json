@@ -1,0 +1,83 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Serviço HTTP que recebe um CEP, identifica a cidade através do ViaCEP e retorna a temperatura atual utilizando a WeatherAPI.\nAs temperaturas são retornadas em Celsius, Fahrenheit e Kelvin.",
+        "title": "Clima por CEP API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "basePath": "/",
+    "paths": {
+        "/weather/{zipcode}": {
+            "get": {
+                "description": "Receives a Brazilian ZIP code (CEP), identifies the corresponding city using ViaCEP and retrieves its current temperature using WeatherAPI.\nTemperatures are returned in Celsius, Fahrenheit and Kelvin.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Weather"
+                ],
+                "summary": "Get current weather by ZIP code",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "01001000",
+                        "description": "Brazilian ZIP code (8 digits)",
+                        "name": "zipcode",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Current temperature",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "can not find zipcode",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "422": {
+                        "description": "invalid zipcode",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "handler.Response": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string",
+                    "example": "São Paulo"
+                },
+                "temp_C": {
+                    "type": "number",
+                    "example": 28.5
+                },
+                "temp_F": {
+                    "type": "number",
+                    "example": 83.3
+                },
+                "temp_K": {
+                    "type": "number",
+                    "example": 301.5
+                }
+            }
+        }
+    }
+}
