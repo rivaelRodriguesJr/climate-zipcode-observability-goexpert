@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 )
 
@@ -41,24 +42,31 @@ func NewClient(baseURL string) *Client {
 func (c *Client) Lookup(ctx context.Context, cep string) (string, error) {
 	url := fmt.Sprintf("%s/weather/%s", c.BaseURL, cep)
 
-	fmt.Println(url)
+	ctx, span := otel.Tracer("microservice-tracer").Start(ctx, "service-b-call")
+	defer span.End()
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return "", err
 	}
-
 
 	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return "", fmt.Errorf("orchestrator: read body: %w", err)
 	}
 
@@ -66,7 +74,10 @@ func (c *Client) Lookup(ctx context.Context, cep string) (string, error) {
 		return "", ErrNotFound
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("orchestrator: upstream status %d: %s", resp.StatusCode, string(body))
+		err := fmt.Errorf("orchestrator: upstream status %d: %s", resp.StatusCode, string(body))
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return "", err
 	}
 
 	return string(body), nil

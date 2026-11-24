@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -15,6 +14,7 @@ import (
 
 	httpSwagger "github.com/swaggo/http-swagger"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -59,14 +59,18 @@ func GetWeather(loc LocationFinder, w WeatherFetcher, tracer trace.Tracer) http.
 
 		cep := r.PathValue("zipcode")
 
-		fmt.Println(cep)
-
 		if !cepRe.MatchString(cep) {
 			http.Error(rw, "invalid zipcode", http.StatusUnprocessableEntity)
 			return
 		}
 
-		city, err := loc.Lookup(r.Context(), cep)
+		locCtx, locSpan := tracer.Start(ctx, "viacep-lookup")
+		city, err := loc.Lookup(locCtx, cep)
+		if err != nil && !errors.Is(err, location.ErrNotFound) {
+			locSpan.RecordError(err)
+			locSpan.SetStatus(codes.Error, err.Error())
+		}
+		locSpan.End()
 		if errors.Is(err, location.ErrNotFound) {
 			http.Error(rw, "can not find zipcode", http.StatusNotFound)
 			return
@@ -78,7 +82,13 @@ func GetWeather(loc LocationFinder, w WeatherFetcher, tracer trace.Tracer) http.
 			return
 		}
 
-		c, err := w.CurrentCelsius(r.Context(), city)
+		wCtx, wSpan := tracer.Start(ctx, "weatherapi-current")
+		c, err := w.CurrentCelsius(wCtx, city)
+		if err != nil {
+			wSpan.RecordError(err)
+			wSpan.SetStatus(codes.Error, err.Error())
+		}
+		wSpan.End()
 		if err != nil {
 			log.Printf("weather fetch: %v", err)
 			http.Error(rw, "internal error", http.StatusInternalServerError)

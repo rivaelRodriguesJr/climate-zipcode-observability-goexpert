@@ -5,11 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
 	"strings"
+
+	"climate-zipcode/internal/orchestrator"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -23,9 +24,6 @@ import (
 type OrchestratorClient interface {
 	Lookup(ctx context.Context, cep string) (string, error)
 }
-
-// ErrZipNotFound is returned by the orchestrator when the CEP does not exist.
-var ErrZipNotFound = errors.New("zipcode not found")
 
 // WeatherResponse is the JSON returned on success.
 type WeatherResponse struct {
@@ -93,10 +91,9 @@ func HandleWeather(client OrchestratorClient, tracer trace.Tracer) http.HandlerF
 		}
 
 		// 4. Forward to the orchestrator.
-		res, err := client.Lookup(r.Context(), cep)
+		res, err := client.Lookup(ctx, cep)
 		if err != nil {
-			fmt.Println(err)
-			if errors.Is(err, ErrZipNotFound) {
+			if errors.Is(err, orchestrator.ErrNotFound) {
 				writeJSONError(rw, http.StatusNotFound, "can not find zipcode")
 				return
 			}
